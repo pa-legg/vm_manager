@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<head>
+  <title>VM Modeller</title>
+  <link rel="stylesheet" href="./static/lib/css//bootstrap.min.css">
+  <link rel="stylesheet" href="./static/lib/css/keen-dashboards.css">
+  <link rel="stylesheet" href="./static/lib/css/dc.css">
+  <link rel="stylesheet" href="./static/css/custom.css">
+
+  <script src="./static/lib/js/jquery.js"></script>
+  <script src="./static/lib/js/bootstrap.min.js"></script>
+
+  <!-- <script src="./static/lib/js/d3.js"></script> -->
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+
+  <script src="./static/lib/js/queue.js"></script>
+  <script src="./static/lib/js/keen.min.js"></script>
+
+  <script src='./static/js/nodelink.js' type='text/javascript'></script>
+
+</head>
+
+<script>
+
+var vm;
+var cpuData = {};
+
+function listVMs() {
+
+  $.ajax({
+      url:'listVMs',
+      success:function(ddd) {
+
+        console.log("start");
+        ddd = JSON.parse(ddd);
+        console.log(ddd);
+        console.log(ddd['vms'], ddd['vms'].length);
+
+        var select = document.getElementById("selectVM");
+
+        var i;
+        for (i = 0; i < ddd['vms'].length; i++) {
+          var opt = ddd['vms'][i];
+          window.cpuData[opt] = [];
+          var el = document.createElement("option");
+          el.textContent = opt;
+          el.value = opt;
+          select.appendChild(el);
+        }
+
+        //for(i = 0; i < ddd['vms'.length; i++]){
+          //cpuData[ddd['vms'][i]] = [];
+      //  }
+      }
+
+    });
+
+
+}
+
+function updateVM() {
+
+  vm = document.getElementById("selectVM").value;
+  vm = vm.split("{")[0];
+  console.log(vm);
+
+  $.ajax({
+      url:'showVMdetail',
+      data: {'vm_name':vm},
+      success:function(ddd) {
+        ddd = JSON.parse(ddd);
+        console.log(ddd);
+
+        document.getElementById("chart-detail_view").innerHTML = ddd['entry'].toString();
+      }
+    });
+
+}
+
+function launchVM() {
+  $.ajax({
+      url:'launchVM',
+      data: {'vm_name':vm},
+      success:function(ddd) {
+        console.log(ddd);
+      }
+    });
+
+
+}
+
+function enableMetrics() {
+  vm = document.getElementById("selectVM").value;
+  vm = vm.split("{")[0];
+  //console.log(vm);
+  var test = {};
+  test['test'] = [{id:"test", test:"test"}];
+  $.ajax({
+      url:'enableMetrics',
+      data: {'vm_name':vm},
+      success:function(ddd) {
+        console.log(ddd);
+      }
+    });
+}
+
+function takeScreenshot(){
+    $.ajax({
+      url:'vmScreenshot',
+      data: {'vm_name': vm},
+      success:function(ddd){
+        console.log(ddd);
+      }
+    });
+}
+
+function queryMetrics() {
+  $.ajax({
+      url:'queryMetrics',
+      data: {'vm_name':vm},
+      success:function(ddd) {
+        ddd = JSON.parse(ddd);
+        var out_string = ddd['dt'] + "<br />"
+
+        var this_data = {};
+        this_data['nodes'] = [];
+        this_data['links'] = [];
+
+        for (var i=0; i < Object.keys(ddd['metrics']).length; i++) {
+          vm_name = Object.keys(ddd['metrics'])[i];
+          entry = vm_name
+          group = 1;
+          if (vm_name == 'host') {
+            group = 0;
+          }
+          this_data['nodes'].push({"id": vm_name, "group": group})
+          for (var j=0; j < 20; j++) {
+            entry = entry + "<br />" + ddd['metrics'][vm_name][j];
+
+          }
+          out_string = out_string + "<p>" + entry + "</p>"
+        }
+        document.getElementById("chart-detail_view").innerHTML = out_string
+
+        //this_data = test_data;
+        create_nodelink_diagram(this_data, "#chart-network_view");
+
+        window.cpuData[vm_name].push({"dt": ddd['dt'], "usage": ddd['metrics'][vm_name][1]});
+      }
+    });
+
+
+}
+
+var queryInterval;
+var screenshotInterval;
+function queryMetricsAtInterval() {
+  queryInterval = setInterval(queryMetrics,5000);
+}
+
+function screenshotAtInterval() {
+  screenshotInterval = setInterval(takeScreenshot,30000);
+}
+
+function queryMetricsStopInterval() {
+  clearInterval(queryInterval);
+}
+
+
+</script>
+
+
+
+
+<body class="application">
+
+  <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="./">VM Modeller</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid">
+    <div class="row">
+
+      <!-- First column -->
+      <div class="col-sm-3">
+          <div class="chart-wrapper">
+            <div class="chart-title">
+              Setup
+            </div>
+            <div class="chart-stage">
+              <p><a href="#" onclick="listVMs()">List VMs</a>
+
+              <form id="myForm">
+                <select id="selectVM" onchange="updateVM()">
+                  <option>Choose a VM</option>
+                </select>
+              </form>
+
+              </p>
+
+              <p><a href="#" onclick="launchVM()">Launch VM</a></p>
+              <p><a href="#" onclick="enableMetrics()">Enable Metrics</a></p>
+              <p><a href="#" onclick="queryMetrics()">Query Metrics</a> (<a href="#" onclick="queryMetricsAtInterval();screenshotAtInterval();">Start</a> / <a href="#" onclick="queryMetricsStopInterval()">Stop</a>)</p>
+
+
+
+            </div>
+            <div class="chart-notes">
+              <div id="chart-projection_view-notes"> </div>
+            </div>
+          </div>
+
+      </div>
+
+      <!-- Second column -->
+
+      <div class="col-sm-6">
+
+          <div class="chart-wrapper">
+            <div class="chart-title">
+              Network View
+            </div>
+            <div class="chart-stage">
+              <div id="chart-network_view"></div>
+            </div>
+            <div class="chart-notes">
+              <div id="chart-network_view-notes"></div>
+            </div>
+          </div>
+      </div>
+
+      <div class="col-sm-3">
+
+          <div class="chart-wrapper">
+            <div class="chart-title">
+              Detail View
+            </div>
+            <div class="chart-stage">
+              <div id="chart-detail_view"></div>
+            </div>
+            <div class="chart-notes">
+              <div id="chart-detail_view-notes"> </div>
+            </div>
+          </div>
+      </div>
+
+    </div>
+
+    <hr>
+
+</body>
+<body>
+<div class="float-container">
+  <div class="float-child">
+    <div id="my_dataviz">
+      <script>
+
+      </script>
+    </div>
+  </div>
+  <div class="float-child">
+    <div id="multiline">
+      
+      </script>
+    </div>
+  </div>
+</div>
+</body>

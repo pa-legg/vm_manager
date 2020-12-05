@@ -1,0 +1,50 @@
+
+
+.paracoords_brush .extent {
+  fill-opacity: .3;
+  stroke: #fff;
+  shape-rendering: crispEdges;
+}
+
+.paracoords_axis line,
+.paracoords_axis path {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.paracoords_axis text {
+  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+  cursor: move;
+}
+
+
+
+text {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.brush .extent {
+  stroke: #fff;
+  fill-opacity: .125;
+  shape-rendering: crispEdges;
+}
+
+.float-container{
+  /*border: 3px solid #fff; */
+  padding: 20px;
+}
+
+.float-child{
+  width: 50%;
+  float: left;
+  padding: 20px;
+  /*border: 2px solid red; */
+}
